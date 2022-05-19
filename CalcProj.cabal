@@ -1,0 +1,17 @@
+cabal-version:      2.4
+name:               CalcProj
+version:            0.1.0.0
+
+extra-source-files: CHANGELOG.md
+
+library Bread 
+    hs-source-dirs: lib
+    build-depends: tagsoup, bytestring, http-client-tls, http-client, base ^>=4.15.1.0
+    exposed-modules: Bread 
+    default-language: Haskell2010
+
+executable CalcProj
+    main-is: Main.hs
+    hs-source-dirs: src
+    build-depends: Bread, base ^>=4.15.1.0
+    default-language: Haskell2010
