@@ -7,6 +7,6 @@ main :: IO ()
 main = do
   content <- readFile "test.html"
 
-  formatted <- formatter content
+  formatted <- formatter 10 content
 
   return ()
