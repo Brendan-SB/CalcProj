@@ -1,15 +1,12 @@
 module Main where
 
-import Bread (finder)
+import Bread (finder, formatter)
+import System.IO
 
 main :: IO ()
 main = do
-  info <- finder
+  content <- readFile "test.html"
 
-  putStrLn "Saving bread..."
+  formatted <- formatter content
 
-  writeFile "test.html" info 
-
-  putStrLn "Bread has been saved."
-
-
+  return ()
