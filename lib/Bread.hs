@@ -17,7 +17,8 @@ data Bread =
   Bread
     { title :: String
     , author :: String
-    , content :: String
+    , ingredients :: [String]
+    , instructions :: [String]
     }
   deriving (Show)
 
@@ -36,45 +37,82 @@ openURL url = do
 finder :: IO String
 finder = openURL breadUrl
 
-rmDups :: (Ord a) => [a] -> [a]
-rmDups = map head . group . sort
-
-formatter :: Int -> String -> IO [Bread]
-formatter amount input = do
+formatter :: String -> IO [Bread]
+formatter input = do
   let urls =
-        rmDups $
-        take (amount * 2) $
-        filter (\t -> (fromAttrib "class" t) == "") $
-        filter (~== TagOpen "a" [("href", "")]) $
-        dropWhile (~/= TagOpen "h2" [("class", "nm-post-title")]) $
-        dropWhile (~/= TagOpen "li" []) $
+        filterURLS $
+        takeWhile (~/= TagClose "ul") $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
-  print urls
-  return []
-  -- packBread 0 urls
+  packBread 0 urls
+
+filterURLS :: [Tag String] -> [Tag String]
+filterURLS tags = do
+  let tag = TagOpen "h2" [("class", "nm-post-title")]
+  let f =
+        (\t ->
+           filter (~== TagOpen "a" [("href", "")]) $
+           takeWhile (~/= TagClose "h2") t)
+  filterItems 0 tags tag f
 
 packBread :: Int -> [Tag String] -> IO [Bread]
 packBread i urls = do
   if i == length urls
     then return []
     else do
-      bread <- formatBread $ urls !! i
+      let url = urls !! i
+      bread <- findBread url
+      nextBread <- (packBread (i + 1) urls)
       case bread of
         Just bread -> do
-          nextBread <- (packBread (i + 1) urls)
-          return $ ([bread] ++ nextBread)
+          return $ [bread] ++ nextBread
         Nothing -> do
-          nextBread <- (packBread (i + 1) urls)
           return nextBread
 
-formatBread :: Tag String -> IO (Maybe Bread)
-formatBread tag = do
+findBread :: Tag String -> IO (Maybe Bread)
+findBread tag = do
   case tag of
     TagOpen _ _ -> do
       let url = fromAttrib "href" tag
-      print url
       page <- openURL url
-      let content = parseTags page
-      let bread = Bread {title = "", author = "", content = ""}
+      let tags = parseTags page
+      let bread = formatBread tags
       return $ Just bread
     _ -> return Nothing
+
+formatBread :: [Tag String] -> Bread
+formatBread tags = do
+  let bread =
+        Bread
+          { title = ""
+          , author = ""
+          , instructions = []
+          , ingredients = map fromTagText $ filterIngredients tags
+          }
+  bread
+
+filterIngredients :: [Tag String] -> [Tag String]
+filterIngredients tags = do
+  let tag =
+        TagOpen
+          "ul"
+          [ ( "class"
+            , "zrdn-list zrdn-ingredients-list bullets zrdn-element_ingredients")
+          ]
+  let f = (\t -> filter (~== TagText "") $ takeWhile (~/= TagClose "div") t)
+  filterItems 0 tags tag f
+
+filterItems ::
+     Int
+  -> [Tag String]
+  -> Tag String
+  -> ([Tag String] -> [Tag String])
+  -> [Tag String]
+filterItems i tags tag f =
+  if i >= length tags
+    then []
+    else do
+      if (tags !! i) ~== tag
+        then do
+          let items = f $ drop i tags
+          items ++ filterItems (i + 1 + length items) tags tag f
+        else filterItems (i + 1) tags tag f

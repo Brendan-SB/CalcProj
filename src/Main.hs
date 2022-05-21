@@ -6,5 +6,5 @@ import System.IO
 main :: IO ()
 main = do
   content <- readFile "test.html"
-  formatted <- formatter 10 content
+  formatted <- formatter content
   return ()
