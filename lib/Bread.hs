@@ -50,9 +50,7 @@ formatter amount input = do
         dropWhile (~/= TagOpen "li" []) $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
   print urls
-
   return []
-
   -- packBread 0 urls
 
 packBread :: Int -> [Tag String] -> IO [Bread]
