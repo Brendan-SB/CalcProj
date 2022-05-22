@@ -5,6 +5,6 @@ import System.IO
 
 main :: IO ()
 main = do
-  content <- readFile "test.html"
+  content <- finder
   formatted <- formatter content
   return ()

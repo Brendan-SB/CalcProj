@@ -48,11 +48,8 @@ formatter input = do
 filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
   let tag = TagOpen "h2" [("class", "nm-post-title")]
-  let f =
-        (\t ->
-           filter (~== TagOpen "a" [("href", "")]) $
-           takeWhile (~/= TagClose "h2") t)
-  filterItems 0 tags tag f
+  filter (~== TagOpen "a" [("href", "")]) $
+    filterItems 0 tags tag (takeWhile (~/= TagClose "h2"))
 
 packBread :: Int -> [Tag String] -> IO [Bread]
 packBread i urls = do
@@ -70,25 +67,46 @@ packBread i urls = do
 
 findBread :: Tag String -> IO (Maybe Bread)
 findBread tag = do
-  case tag of
-    TagOpen _ _ -> do
+  if tag ~== (TagOpen "" [])
+    then do
       let url = fromAttrib "href" tag
       page <- openURL url
       let tags = parseTags page
-      let bread = formatBread tags
+      bread <- formatBread tags
       return $ Just bread
-    _ -> return Nothing
+    else return Nothing
 
-formatBread :: [Tag String] -> Bread
+formatBread :: [Tag String] -> IO Bread
 formatBread tags = do
+  let (title, author) = filterInfo tags
+  let ingredients = filterIngredients tags
+  let instructions = filterInstructions tags
   let bread =
         Bread
-          { title = ""
-          , author = ""
-          , instructions = []
-          , ingredients = map fromTagText $ filterIngredients tags
+          { title = fromTagText title
+          , author = fromTagText author
+          , ingredients = map fromTagText ingredients
+          , instructions = map fromTagText instructions
           }
-  bread
+  print $ show bread
+  return bread
+
+filterInfo :: [Tag String] -> (Tag String, Tag String)
+filterInfo tags = do
+  let section =
+        takeWhile (~/= TagClose "header") $
+        dropWhile
+          (~/= TagOpen "header" [("class", "nm-post-header entry-header")])
+          tags
+  let title =
+        head $
+        filter (~== TagText "") $
+        takeWhile (~/= TagClose "h1") $ dropWhile (~/= TagOpen "h1" []) section
+  let author =
+        head $
+        filter (~== TagText "") $
+        takeWhile (~/= TagClose "a") $ dropWhile (~/= TagOpen "a" []) section
+  (title, author)
 
 filterIngredients :: [Tag String] -> [Tag String]
 filterIngredients tags = do
@@ -98,8 +116,26 @@ filterIngredients tags = do
           [ ( "class"
             , "zrdn-list zrdn-ingredients-list bullets zrdn-element_ingredients")
           ]
-  let f = (\t -> filter (~== TagText "") $ takeWhile (~/= TagClose "div") t)
-  filterItems 0 tags tag f
+  filter (~== TagText "") $
+    filterItems 0 tags tag (takeWhile (~/= TagClose "div"))
+
+filterInstructions :: [Tag String] -> [Tag String]
+filterInstructions tags = do
+  let tag =
+        TagOpen "ul" [("class", "zrdn-list zrdn-instructions-list nobullets")]
+  let items = filterItems 0 tags tag (takeWhile (~/= TagClose "ul"))
+  filter
+    (~== TagText "")
+    (if length items == 0
+       then takeWhile (~/= TagClose "ul") $
+            dropWhile
+              (~/= TagOpen
+                     "ul"
+                     [ ( "class"
+                       , "zrdn-list zrdn-instructions-list nobullets  zrdn-element_instructions")
+                     ])
+              tags
+       else items)
 
 filterItems ::
      Int
@@ -108,11 +144,10 @@ filterItems ::
   -> ([Tag String] -> [Tag String])
   -> [Tag String]
 filterItems i tags tag f =
-  if i >= length tags
+  if i >= (length tags)
     then []
-    else do
-      if (tags !! i) ~== tag
-        then do
-          let items = f $ drop i tags
-          items ++ filterItems (i + 1 + length items) tags tag f
-        else filterItems (i + 1) tags tag f
+    else if (tags !! i) ~== tag
+           then do
+             let items = (f $ drop i tags)
+             items ++ filterItems (i + 1 + length items) tags tag f
+           else filterItems (i + 1) tags tag f
