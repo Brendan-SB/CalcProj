@@ -132,4 +132,4 @@ filterItems i tags tag f =
            else filterItems (i + 1) tags tag f
 
 cleanString :: String -> String
-cleanString s = unwords . words $ filter (\c -> c /= '\n' && c /= '\r') s
+cleanString s = unwords $ words s
