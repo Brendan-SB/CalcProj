@@ -72,24 +72,20 @@ findBread tag = do
       let url = fromAttrib "href" tag
       page <- openURL url
       let tags = parseTags page
-      bread <- formatBread tags
-      return $ Just bread
+      return $ Just $ formatBread tags
     else return Nothing
 
-formatBread :: [Tag String] -> IO Bread
+formatBread :: [Tag String] -> Bread
 formatBread tags = do
   let (title, author) = filterInfo tags
   let ingredients = filterIngredients tags
   let instructions = filterInstructions tags
-  let bread =
-        Bread
-          { title = fromTagText title
-          , author = fromTagText author
-          , ingredients = map fromTagText ingredients
-          , instructions = map fromTagText instructions
-          }
-  print $ show bread
-  return bread
+  Bread
+    { title = fromTagText title
+    , author = fromTagText author
+    , ingredients = map fromTagText ingredients
+    , instructions = map fromTagText instructions
+    }
 
 filterInfo :: [Tag String] -> (Tag String, Tag String)
 filterInfo tags = do
