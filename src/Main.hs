@@ -7,4 +7,7 @@ main :: IO ()
 main = do
   content <- finder
   formatted <- formatter content
+
+  print $ show formatted
+
   return ()
