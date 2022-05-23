@@ -8,10 +8,10 @@ import Control.Monad
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.Char
-import Data.List
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Text.HTML.TagSoup
+import Graphics.PDF (PDF)
 
 data Bread =
   Bread
@@ -43,7 +43,7 @@ formatter input = do
         filterURLS $
         takeWhile (~/= TagClose "ul") $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
-  packBread 0 urls
+  mapM findBread urls
 
 filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
@@ -51,29 +51,12 @@ filterURLS tags = do
   filter (~== TagOpen "a" [("href", "")]) $
     filterItems 0 tags tag (takeWhile (~/= TagClose "h2"))
 
-packBread :: Int -> [Tag String] -> IO [Bread]
-packBread i urls = do
-  if i == length urls
-    then return []
-    else do
-      let url = urls !! i
-      bread <- findBread url
-      nextBread <- (packBread (i + 1) urls)
-      case bread of
-        Just bread -> do
-          return $ [bread] ++ nextBread
-        Nothing -> do
-          return nextBread
-
-findBread :: Tag String -> IO (Maybe Bread)
+findBread :: Tag String -> IO Bread
 findBread tag = do
-  if tag ~== (TagOpen "" [])
-    then do
-      let url = fromAttrib "href" tag
-      page <- openURL url
-      let tags = parseTags page
-      return $ Just $ formatBread tags
-    else return Nothing
+  let url = fromAttrib "href" tag
+  page <- openURL url
+  let tags = parseTags page
+  return $ formatBread tags
 
 formatBread :: [Tag String] -> Bread
 formatBread tags = do
@@ -81,10 +64,10 @@ formatBread tags = do
   let ingredients = filterIngredients tags
   let instructions = filterInstructions tags
   Bread
-    { title = fromTagText title
-    , author = fromTagText author
-    , ingredients = map fromTagText ingredients
-    , instructions = map fromTagText instructions
+    { title = cleanString $ fromTagText title
+    , author = cleanString $ fromTagText author
+    , ingredients = map (\t -> cleanString $ fromTagText t) ingredients
+    , instructions = map (\t -> cleanString $ fromTagText t) instructions
     }
 
 filterInfo :: [Tag String] -> (Tag String, Tag String)
@@ -147,3 +130,6 @@ filterItems i tags tag f =
              let items = (f $ drop i tags)
              items ++ filterItems (i + 1 + length items) tags tag f
            else filterItems (i + 1) tags tag f
+
+cleanString :: String -> String
+cleanString str = unwords . words $ filter (\s -> s /= '\n' && s /= '\r') str
