@@ -8,10 +8,10 @@ import Control.Monad
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.Char
+import Graphics.PDF (PDF)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Text.HTML.TagSoup
-import Graphics.PDF (PDF)
 
 data Bread =
   Bread
