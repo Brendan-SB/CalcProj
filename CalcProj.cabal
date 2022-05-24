@@ -2,16 +2,19 @@ cabal-version:      2.4
 name:               CalcProj
 version:            0.1.0.0
 
-extra-source-files: CHANGELOG.md
-
-library Bread 
-    hs-source-dirs: lib
-    build-depends: directory, tagsoup, bytestring, http-client-tls, http-client, base ^>=4.15.1.0
-    exposed-modules: Bread 
+common common-settings
     default-language: Haskell2010
+    build-depends: base ^>= 4.15.1.0
+    ghc-options: -Wall
+
+library Bread
+    import: common-settings
+    hs-source-dirs: lib
+    build-depends: directory, tagsoup, bytestring, http-client-tls, http-client
+    exposed-modules: Bread 
 
 executable CalcProj
+    import: common-settings
     main-is: Main.hs
     hs-source-dirs: src
-    build-depends: Bread, base ^>=4.15.1.0
-    default-language: Haskell2010
+    build-depends: Bread

@@ -1,13 +1,10 @@
 module Bread where
 
-import Control.Monad
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy.Char8 as L8
-import Data.Char
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import System.Directory
-import System.IO
 import Text.HTML.TagSoup
 
 data Bread =
@@ -58,16 +55,15 @@ findBread tag = do
 
 formatBread :: [Tag String] -> Bread
 formatBread tags = do
-  let (title, author) = filterInfo tags
-  let ingredients = filterIngredients tags
-  let instructions = filterInstructions tags
+  let (ti, a) = filterInfo tags
+  let ing = filterIngredients tags
+  let ins = filterInstructions tags
   Bread
-    { title = cleanString $ fromTagText title
-    , author = cleanString $ fromTagText author
-    , ingredients =
-        filter (/= "") $ map (\t -> cleanString $ fromTagText t) ingredients
+    { title = cleanString $ fromTagText ti
+    , author = cleanString $ fromTagText a
+    , ingredients = filter (/= "") $ map (\t -> cleanString $ fromTagText t) ing
     , instructions =
-        filter (/= "") $ map (\t -> cleanString $ fromTagText t) instructions
+        filter (/= "") $ map (\t -> cleanString $ fromTagText t) ins
     }
 
 filterInfo :: [Tag String] -> (Tag String, Tag String)
@@ -77,15 +73,15 @@ filterInfo tags = do
         dropWhile
           (~/= TagOpen "header" [("class", "nm-post-header entry-header")])
           tags
-  let title =
+  let t =
         head $
         filter (~== TagText "") $
         takeWhile (~/= TagClose "h1") $ dropWhile (~/= TagOpen "h1" []) section
-  let author =
+  let a =
         head $
         filter (~== TagText "") $
         takeWhile (~/= TagClose "a") $ dropWhile (~/= TagOpen "a" []) section
-  (title, author)
+  (t, a)
 
 filterIngredients :: [Tag String] -> [Tag String]
 filterIngredients tags = do
@@ -145,7 +141,7 @@ breadToMD bread =
   (concat $ map (\i -> "* " ++ i ++ "\n") $ ingredients bread) ++
   "\n" ++
   (concat $
-   map (\(n, i) -> (show $ n + 1) ++ ". " ++ i ++ "\n") $
+   map (\(n, i) -> (show $ ((n + 1) :: Integer)) ++ ". " ++ i ++ "\n") $
    zip [0 ..] $ instructions bread)
 
 findAndWrite :: Tag String -> IO Bread
@@ -157,6 +153,6 @@ findAndWrite tag = do
 writeBread :: Bread -> IO ()
 writeBread bread = do
   createDirectoryIfMissing False "recipes"
-  let path = ("recipes/" ++ (title bread) ++ ".md")
-  putStrLn $ "Formatting to markdown and writing to " ++ path
-  writeFile path $ breadToMD bread
+  let p = ("recipes/" ++ (title bread) ++ ".md")
+  putStrLn $ "Formatting to markdown and writing to " ++ p
+  writeFile p $ breadToMD bread

@@ -5,5 +5,5 @@ import Bread (finder, formatter)
 main :: IO ()
 main = do
   content <- finder
-  bread <- formatter content
+  _ <- formatter content
   return ()
