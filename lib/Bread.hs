@@ -28,8 +28,7 @@ openURL url = do
   let req = initReq {method = C8.pack "GET"}
   man <- newManager tlsManagerSettings
   response <- httpLbs req man
-  let body = L8.unpack $ responseBody response
-  return body
+  return $ L8.unpack $ responseBody response
 
 finder :: IO String
 finder = do
