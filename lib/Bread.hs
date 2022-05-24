@@ -6,6 +6,8 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.Char
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
+import System.Directory
+import System.IO
 import Text.HTML.TagSoup
 
 data Bread =
@@ -30,15 +32,17 @@ openURL url = do
   return body
 
 finder :: IO String
-finder = openURL breadUrl
+finder = do
+  putStrLn "Downloading main page"
+  openURL breadUrl
 
 formatter :: String -> IO [Bread]
 formatter input = do
-  let urls =
+  let tags =
         filterURLS $
         takeWhile (~/= TagClose "ul") $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
-  mapM findBread urls
+  mapM findAndWrite tags
 
 filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
@@ -144,3 +148,16 @@ breadToMD bread =
   (concat $
    map (\(n, i) -> (show $ n + 1) ++ ". " ++ i ++ "\n") $
    zip [0 ..] $ instructions bread)
+
+findAndWrite :: Tag String -> IO Bread
+findAndWrite tag = do
+  bread <- findBread tag
+  writeBread bread
+  return bread
+
+writeBread :: Bread -> IO ()
+writeBread bread = do
+  createDirectoryIfMissing False "recipes"
+  let path = ("recipes/" ++ (title bread) ++ ".md")
+  putStrLn $ "Formatting to markdown and writing to " ++ path
+  writeFile path $ breadToMD bread
