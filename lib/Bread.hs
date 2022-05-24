@@ -1,14 +1,9 @@
-module Bread
-  ( finder
-  , formatter
-  , Bread
-  ) where
+module Bread where
 
 import Control.Monad
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.Char
-import Graphics.PDF (PDF)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Text.HTML.TagSoup
@@ -49,14 +44,14 @@ filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
   let tag = TagOpen "h2" [("class", "nm-post-title")]
   filter (~== TagOpen "a" [("href", "")]) $
-    filterItems 0 tags tag (takeWhile (~/= TagClose "h2"))
+    filterItems 0 tags tag $ takeWhile (~/= TagClose "h2")
 
 findBread :: Tag String -> IO Bread
 findBread tag = do
   let url = fromAttrib "href" tag
+  putStrLn $ "Downloading " ++ url
   page <- openURL url
-  let tags = parseTags page
-  return $ formatBread tags
+  return $ formatBread $ parseTags page
 
 formatBread :: [Tag String] -> Bread
 formatBread tags = do
@@ -66,8 +61,10 @@ formatBread tags = do
   Bread
     { title = cleanString $ fromTagText title
     , author = cleanString $ fromTagText author
-    , ingredients = map (\t -> cleanString $ fromTagText t) ingredients
-    , instructions = map (\t -> cleanString $ fromTagText t) instructions
+    , ingredients =
+        filter (/= "") $ map (\t -> cleanString $ fromTagText t) ingredients
+    , instructions =
+        filter (/= "") $ map (\t -> cleanString $ fromTagText t) instructions
     }
 
 filterInfo :: [Tag String] -> (Tag String, Tag String)
@@ -96,13 +93,13 @@ filterIngredients tags = do
             , "zrdn-list zrdn-ingredients-list bullets zrdn-element_ingredients")
           ]
   filter (~== TagText "") $
-    filterItems 0 tags tag (takeWhile (~/= TagClose "div"))
+    filterItems 0 tags tag $ takeWhile (~/= TagClose "div")
 
 filterInstructions :: [Tag String] -> [Tag String]
 filterInstructions tags = do
   let tag =
         TagOpen "ul" [("class", "zrdn-list zrdn-instructions-list nobullets")]
-  let items = filterItems 0 tags tag (takeWhile (~/= TagClose "ul"))
+  let items = filterItems 0 tags tag $ takeWhile (~/= TagClose "ul")
   filter
     (~== TagText "")
     (if length items == 0
@@ -133,3 +130,17 @@ filterItems i tags tag f =
 
 cleanString :: String -> String
 cleanString s = unwords $ words s
+
+breadToMD :: Bread -> String
+breadToMD bread =
+  "# " ++
+  title bread ++
+  "\n" ++
+  "## By: " ++
+  author bread ++
+  "\n\n" ++
+  (concat $ map (\i -> "* " ++ i ++ "\n") $ ingredients bread) ++
+  "\n" ++
+  (concat $
+   map (\(n, i) -> (show $ n + 1) ++ ". " ++ i ++ "\n") $
+   zip [0 ..] $ instructions bread)
