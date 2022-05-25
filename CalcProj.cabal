@@ -10,7 +10,7 @@ common common-settings
 library Bread
     import: common-settings
     hs-source-dirs: lib
-    build-depends: directory, tagsoup, bytestring, http-client-tls, http-client
+    build-depends: monad-parallel, directory, tagsoup, bytestring, http-client-tls, http-client
     exposed-modules: Bread 
 
 executable CalcProj
@@ -18,3 +18,4 @@ executable CalcProj
     main-is: Main.hs
     hs-source-dirs: src
     build-depends: Bread
+    ghc-options: -threaded

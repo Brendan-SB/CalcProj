@@ -1,5 +1,6 @@
 module Bread where
 
+import qualified Control.Monad.Parallel as P
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Network.HTTP.Client
@@ -38,7 +39,7 @@ formatter input = do
         filterURLS $
         takeWhile (~/= TagClose "ul") $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
-  mapM findAndWrite tags
+  P.mapM findAndWrite tags
 
 filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
