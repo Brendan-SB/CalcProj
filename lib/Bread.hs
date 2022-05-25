@@ -141,7 +141,7 @@ breadToMD bread =
   (concat $ map (\i -> "* " ++ i ++ "\n") $ ingredients bread) ++
   "\n" ++
   (concat $
-   map (\(n, i) -> (show $ ((n + 1) :: Integer)) ++ ". " ++ i ++ "\n") $
+   map (\(n, i) -> (show ((n + 1) :: Integer)) ++ ". " ++ i ++ "\n") $
    zip [0 ..] $ instructions bread)
 
 findAndWrite :: Tag String -> IO Bread
