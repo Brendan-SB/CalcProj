@@ -45,7 +45,7 @@ filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
   let tag = TagOpen "h2" [("class", "nm-post-title")]
   filter (~== TagOpen "a" [("href", "")]) $
-    filterItems 0 tags tag $ takeWhile (~/= TagClose "h2")
+    filterItems 0 tags tag (takeWhile (~/= TagClose "h2"))
 
 findBread :: Tag String -> IO Bread
 findBread tag = do
@@ -93,13 +93,13 @@ filterIngredients tags = do
             , "zrdn-list zrdn-ingredients-list bullets zrdn-element_ingredients")
           ]
   filter (~== TagText "") $
-    filterItems 0 tags tag $ takeWhile (~/= TagClose "div")
+    filterItems 0 tags tag (takeWhile (~/= TagClose "div"))
 
 filterInstructions :: [Tag String] -> [Tag String]
 filterInstructions tags = do
   let tag =
         TagOpen "ul" [("class", "zrdn-list zrdn-instructions-list nobullets")]
-  let items = filterItems 0 tags tag $ takeWhile (~/= TagClose "ul")
+  let items = filterItems 0 tags tag (takeWhile (~/= TagClose "ul"))
   filter
     (~== TagText "")
     (if length items == 0
