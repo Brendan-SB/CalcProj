@@ -3,6 +3,7 @@ module Bread where
 import qualified Control.Monad.Parallel as P
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import Data.Maybe
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import System.Directory
@@ -39,7 +40,8 @@ formatter input = do
         filterURLS $
         takeWhile (~/= TagClose "ul") $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
-  P.mapM findAndWrite tags
+  bread <- P.mapM findAndWrite tags
+  return $ catMaybes bread
 
 filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
@@ -145,15 +147,16 @@ breadToMD bread =
    map (\(n, i) -> (show ((n + 1) :: Integer)) ++ ". " ++ i ++ "\n") $
    zip [0 ..] $ instructions bread)
 
-findAndWrite :: Tag String -> IO Bread
+findAndWrite :: Tag String -> IO (Maybe Bread)
 findAndWrite tag = do
   bread <- findBread tag
-  writeBread bread
-  return bread
-
-writeBread :: Bread -> IO ()
-writeBread bread = do
-  createDirectoryIfMissing False "recipes"
-  let p = ("recipes/" ++ (title bread) ++ ".md")
-  putStrLn $ "Formatting to markdown and writing to " ++ p
-  writeFile p $ breadToMD bread
+  let md = breadToMD bread
+  if (length md) > 0
+    then do
+      let p = ("recipes/" ++ (title bread) ++ ".md")
+      putStrLn $ "Formatting to markdown and writing to " ++ p
+      createDirectoryIfMissing False "recipes"
+      writeFile p md
+      return $ Just bread
+    else do
+      return Nothing
