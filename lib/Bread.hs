@@ -23,11 +23,10 @@ breadUrl = "https://breadtopia.com/category/recipes/"
 
 openURL :: String -> IO String
 openURL url = do
-  initReq <- parseRequest url
-  let req = initReq {method = C8.pack "GET"}
+  req <- parseRequest url >>= (\i -> return $ i {method = C8.pack "GET"})
   man <- newManager tlsManagerSettings
-  response <- httpLbs req man
-  return $ L8.unpack $ responseBody response
+  httpLbs req man >>= (\r -> return $ responseBody r) >>=
+    (\l -> return $ L8.unpack l)
 
 finder :: IO String
 finder = do
@@ -40,8 +39,7 @@ formatter input = do
         filterURLS $
         takeWhile (~/= TagClose "ul") $
         dropWhile (~/= TagOpen "ul" [("id", "nm-blog-list")]) (parseTags input)
-  bread <- P.mapM findAndWrite tags
-  return $ catMaybes bread
+  P.mapM findAndWrite tags >>= (\b -> return $ catMaybes b)
 
 filterURLS :: [Tag String] -> [Tag String]
 filterURLS tags = do
